@@ -1,0 +1,13 @@
+{
+  "name": "realtime-collaborative-text-editor",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "express": "^4.22.3",
+    "lib0": "^0.2.117",
+    "ws": "^8.21.3",
+    "y-protocols": "^1.0.7",
+    "y-websocket": "^1.5.0",
+    "yjs": "^13.6.32"
+  }
+}

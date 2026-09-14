@@ -1,0 +1,19 @@
+# Node dependencies
+node_modules/
+
+# Python virtual environment (if present)
+.venv/
+venv/
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Logs and cache
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm/
+
+# Environment variables
+.env

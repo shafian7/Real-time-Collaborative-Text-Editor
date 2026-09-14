@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Real-Time Collaborative Editor</title>
+  <link href="https://cdn.jsdelivr.net/npm/quill@1.3.6/dist/quill.snow.css" rel="stylesheet">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      margin: 40px;
+      background: #f4f6f8;
+      color: #333;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    #status-badge {
+      display: inline-block;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      background: #ffeaa7;
+      color: #d63031;
+      transition: all 0.3s ease;
+    }
+    #editor-container {
+      height: 400px;
+      background: #ffffff;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    }
+    /* Real-Time User Cursor Styles */
+    .ql-cursor {
+      position: absolute;
+      border-left: 2px solid;
+      height: 1.2em;
+      pointer-events: none;
+    }
+    .ql-cursor-flag {
+      position: absolute;
+      top: -1.2em;
+      left: -2px;
+      font-size: 10px;
+      color: white;
+      padding: 2px 4px;
+      border-radius: 3px;
+      white-space: nowrap;
+    }
+  </style>
+
+  <!-- Importmap guarantees all packages share the exact same Yjs singleton instance -->
+  <script type="importmap">
+  {
+    "imports": {
+      "quill": "https://esm.sh/quill@1.3.6",
+      "yjs": "https://esm.sh/yjs@13.6.8",
+      "y-websocket": "https://esm.sh/y-websocket@1.5.0?deps=yjs@13.6.8",
+      "y-quill": "https://esm.sh/y-quill@0.1.5?deps=yjs@13.6.8,quill@1.3.6"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div class="container">
+    <h2>Real-Time Collaborative Document</h2>
+    <div id="status-badge">🟡 Connecting to server...</div>
+    <div id="editor-container"></div>
+  </div>
+
+  <script type="module">
+    import Quill from 'quill';
+    import * as Y from 'yjs';
+    import { WebsocketProvider } from 'y-websocket';
+    import { QuillBinding } from 'y-quill';
+
+    // 1. Initialize Quill Editor
+    const editor = new Quill('#editor-container', {
+      modules: {
+        toolbar: [
+          [{ 'header': [1, 2, 3, false] }],
+          ['bold', 'italic', 'underline', 'strike'],
+          [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+          ['clean']
+        ]
+      },
+      theme: 'snow'
+    });
+
+    // 2. Initialize Shared Yjs Document Instance
+    const ydoc = new Y.Doc();
+
+    // 3. Connect WebSocket Provider to current host
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}`;
+
+    const wsProvider = new WebsocketProvider(wsUrl, 'demo-room', ydoc);
+
+    // Track Connection Status Badge UI
+    const statusBadge = document.getElementById('status-badge');
+    wsProvider.on('status', event => {
+      if (event.status === 'connected') {
+        statusBadge.textContent = '🟢 Connected (Live Sync Active)';
+        statusBadge.style.background = '#00b894';
+        statusBadge.style.color = '#ffffff';
+      } else {
+        statusBadge.textContent = '🔴 Disconnected';
+        statusBadge.style.background = '#d63031';
+        statusBadge.style.color = '#ffffff';
+      }
+    });
+
+    // 4. Bind Shared Text Type for Quill
+    const ytext = ydoc.getText('quill');
+
+    // 5. User Presence & Colored Cursors
+    const getRandomColor = () => '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
+    const userColor = getRandomColor();
+    const userName = 'User ' + Math.floor(Math.random() * 1000);
+
+    wsProvider.awareness.setLocalStateField('user', {
+      name: userName,
+      color: userColor
+    });
+
+    // 6. Bind Editor to Yjs Sync Engine
+    const binding = new QuillBinding(ytext, editor, wsProvider.awareness);
+  </script>
+</body>
+</html>
